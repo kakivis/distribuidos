@@ -1,0 +1,35 @@
+Trabalho Distribuídos:
+
+****************************************************************************
+
+>Entender como entra a assinatura
+
+>Entender como funciona o esquema de chave/criptografia
+
+>Fazer os comandos de request e respostas(free, took, held)
+
+>Criar lista de Recursos
+
+>Função de get_online_processes
+
+>Função de get_released_processes
+
+>Função de get_wanted_processes
+
+>Função de get_held_processes
+
+>Função de get_available_resources
+
+>Fazer a lógica de organização com as mensagens.
+
+>Colocar os comandos disponíveis na mensagem da process_comands
+
+>Colocar o timer para entender que houve falha no processo.
+
+==============================Mensagens===========================================
+-Join(j)
+-Quit(q)
+-Request(r)
+-Free(f)
+-Took(t)
+-Held(h)

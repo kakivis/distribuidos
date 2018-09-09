@@ -1,35 +1,27 @@
-Trabalho Distribuídos:
+﻿Trabalho Distribuídos:
 
 ****************************************************************************
 
->Entender como entra a assinatura
+>Fazer a criptografia/assinatura
 
->Entender como funciona o esquema de chave/criptografia
-
->Fazer os comandos de request e respostas(free, took, held)
-
->Criar lista de Recursos
-
->Função de get_online_processes
-
->Função de get_released_processes
-
->Função de get_wanted_processes
-
->Função de get_held_processes
-
->Função de get_available_resources
-
->Fazer a lógica de organização com as mensagens.
-
->Colocar os comandos disponíveis na mensagem da process_comands
-
->Colocar o timer para entender que houve falha no processo.
+>Fazer lista de espera
 
 ==============================Mensagens===========================================
--Join(j)
--Quit(q)
--Request(r)
--Free(f)
--Took(t)
--Held(h)
+-Join(j) (j id chave_mod chave_exp)
+-Quit(q) (q id)
+-Request(r) (r id resource)
+-Feedback(f) (f resource id response)
+
+==================================================================================
+ 			long millis = System.currentTimeMillis();
+                            int delay = 5*1000;
+
+                            // Cria o timer
+                            Timer timer = new Timer();
+
+                            // Timer varre a lista de interesses e remove qual já está expirado
+                            timer.schedule(new TimerTask() {
+                                public void run() {
+                                    
+                                }
+                            }, delay);

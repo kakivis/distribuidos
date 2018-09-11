@@ -17,15 +17,12 @@ public class MyProcess {
     public static String ipAddressMulticast = "232.232.232.232";
     public static int socketMulticast = 6789;
     public static InetAddress group;
-    public static UUID id;
-    public static int state0 = 0; // 0 para RELEASED, 1 para WANTED, 2 para HELD
-    public static int state1 = 0;
-    public static Process next0 = null;
-    public static Process next1 = null;
-    ArrayList<Processes> processes = new ArrayList<>();
-//    ArrayList<Requests> requests = new ArrayList<>();
-    ArrayList<String> positive_response_ids = new ArrayList<>();
-    ArrayList<String> negative_response_ids = new ArrayList<>();
+    public static UUID id;// id "universal" dos processos
+    public static int state0 = 0; // Controle de estado dos recursos(0 para RELEASED, 1 para WANTED, 2 para HELD)
+    public static int state1 = 0;// Controle de estado dos recursos(0 para RELEASED, 1 para WANTED, 2 para HELD)
+    ArrayList<Processes> processes = new ArrayList<>(); //Lista de processos
+    ArrayList<String> positive_response_ids = new ArrayList<>(); //id dos processos com respostas positivas ao request
+    ArrayList<String> negative_response_ids = new ArrayList<>();//id dos processos com respostas negativas ao request
     
     static boolean shouldRun = true;
     static MulticastSocket s = null;
@@ -105,14 +102,11 @@ public class MyProcess {
                                 
                             // Se o processo foi encontrado
                             if(process != null ){  
-                                // Tornando a mensagem mais agradável ao usuário
                                 message = "";
-//                                message = "processo já registrado: ID " + pid;
                             } else if(pid.compareTo(id.toString()) == 0) {
                                 message = "";
-                            } else {
+                            } else { //só adiciona o processo se não for o próprio e ainda não estiver na lista
                                 addProcess(pid, mod, exp);
-                                // Tornando a mensagem mais agradável ao usuário
                                 message = "novo processo: ID " + pid;
                                 
                                 // Se apresentando ao novo processo
@@ -136,7 +130,7 @@ public class MyProcess {
                                 }
                             }
                                 
-                            // Se o processo foi encontrado
+                            // Se o processo foi encontrado, remove da lista
                             if(process != null){        
                                 processes.remove(process);
                                 message = "processo finalizado: ID " + pid;
@@ -160,7 +154,7 @@ public class MyProcess {
                             if(recNo == 0) {
                                 String feedback = "f " + recNo + " " + id + " " + criptography.criptografa("y", criptography.key.getPrivate());
                                 
-                                if(state0 != 0) { // Se está HELD, diz que o recurso não está livre
+                                if(state0 != 0) { // Se não está RELEASED, diz que o recurso não está livre
                                     feedback = "f " + recNo + " " + id + " " + criptography.criptografa("n", criptography.key.getPrivate());
                                 }
                                 
@@ -169,7 +163,7 @@ public class MyProcess {
                             } else if(recNo == 1) {
                                 String feedback = "f " + recNo + " " + id + " " + criptography.criptografa("y", criptography.key.getPrivate());
                                 
-                                if(state1 != 0) { // Se está HELD, diz que o recurso não está livre
+                                if(state1 != 0) { // Se não está RELEASED, diz que o recurso não está livre
                                     feedback = "f " + recNo + " " + id + " " + criptography.criptografa("n", criptography.key.getPrivate());
                                 }
                                 
@@ -181,7 +175,7 @@ public class MyProcess {
                             
                             break;
                         case 'f':
-                            // Retirando as informações: id de quem respondeu e número do recurso
+                            // Retirando as informações: id de quem respondeu o resquest e número do recurso
                             st = new StringTokenizer(message);
                             st.nextToken();
                             recNo = Integer.parseInt(st.nextToken().trim());
@@ -203,18 +197,13 @@ public class MyProcess {
                                 }
                                 
                                 String respD = criptography.descriptografa(resp, k);
-//                                System.out.println(respD);
                                 
                                 if(respD.compareTo("y") == 0){
                                     if (negative_response_ids.contains(pid)){
                                         negative_response_ids.remove(pid);
-//                                        System.out.println("Removeu da lista de negativos");
                                     }
                                     if (!positive_response_ids.contains(pid)){
                                         positive_response_ids.add(pid);
-//                                        System.out.println("Colocou na lista de positivos");
-//                                        System.out.println(positive_response_ids.size()+" " + processes.size());
-//                                        System.out.println(positive_response_ids.size() + negative_response_ids.size() == processes.size());
                                     }
                                     message = "Feedback do processo "+ pid+ " foi positivo";
                                     
@@ -267,12 +256,12 @@ public class MyProcess {
                 if(scan.hasNext()) {
                     String text= scan.nextLine();
 
-                    // Se foi inserido comando de quit(/q), terminar com o processo e notificar saída
+                    // Se foi inserido comando de quit(q), terminar com o processo e notificar saída
                     if(text.toLowerCase().compareTo("q") == 0){
                         sendMulticastMessage("q " + id );
                         shouldRun = false;
                         break;
-                    } else if(text.toLowerCase().compareTo("r") == 0) {
+                    } else if(text.toLowerCase().compareTo("r") == 0) {//Comando de requisição(r), pergunta qual recurso e envia mensagem
                         System.out.println("Digite o número do recurso que você quer solicitar (0 ou 1)");
                         String recurso = "";
                         String message = "";
@@ -296,7 +285,7 @@ public class MyProcess {
                         // Cria o timer
                         Timer timer = new Timer();
                         
-                        // Timer varre a lista de interesses e remove qual já está expirado
+                        // Timer varre a lista de processos e remove quem não respondeu
                         timer.schedule(new TimerTask() {
                             public void run() {
                                 System.out.println("Timer ativou: Atualizando lista de processos");
@@ -306,30 +295,26 @@ public class MyProcess {
                                         iter.remove();
                                     }
                                 }
-//                                System.out.println("saiu do loop");
                             }
                         }, delay);
 
-                        sendMulticastMessage(message);
+                        sendMulticastMessage(message); //envia requisição
                         int i;
-                        for(i =0; i < 1000000; i++);
+                        for(i =0; i < 1000000; i++); //pequeno delay para ajustar a ordem dos prints
                         
                         System.out.println("Esperando todos os feedbacks serem positivos...");
                         
-                        while(true){
+                        while(true){//Espera todos os processos responderem positivamente
                             if (positive_response_ids.size() == processes.size()){
                                 break;
                             }
                             System.out.print("");
-                            if(positive_response_ids.size() + negative_response_ids.size() == processes.size() && timer != null) {
-//                                System.out.println("Cancelando timer");
+                            if(positive_response_ids.size() + negative_response_ids.size() == processes.size() && timer != null) {//Se todos responderam, desliga timer
                                 timer.cancel();
                                 timer.purge();
                                 timer = null;
-//                                System.out.println("Timer desligado");
                             }
                         }
-//                        System.out.println("Saiu do while");
                         positive_response_ids.clear();
                         negative_response_ids.clear();
                         
@@ -339,13 +324,13 @@ public class MyProcess {
                         }
                         System.out.println("Recurso adquirido!");
                         
-                        if(recurso.compareTo("0") == 0) {
+                        if(recurso.compareTo("0") == 0) {//Muda estado de WANTED para HELD
                             state0 = 2;
                         } else if(recurso.compareTo("1") == 0) {
                             state1 = 2;
                         }
                         
-                    } else if(text.toLowerCase().compareTo("l") == 0){
+                    } else if(text.toLowerCase().compareTo("l") == 0){//Comando de liberar recurso, Checa se está em HELD no recurso e então envia mensagem de feedback positivo caso alguém esteja aguardando
                         System.out.println("Digite o número do recurso que você quer liberar (0 ou 1)");
                         if(scan.hasNext()) {
                             String recurso = scan.nextLine();
@@ -396,12 +381,10 @@ public class MyProcess {
     
     public class Processes {
         final UUID id;
-        final String state;
         final Key publicKey;
         
-        public Processes(String id, String state, Key pk) {
+        public Processes(String id, Key pk) {
             this.id = UUID.fromString(id);
-            this.state = state;
             this.publicKey = pk;
         }
     }
@@ -423,23 +406,8 @@ public class MyProcess {
         if(recoveredKey == null) return;
         
         // Cria o novo processo da lista e o adiciona
-        Processes p = new Processes(id, "RELEASED", recoveredKey);
+        Processes p = new Processes(id, recoveredKey);
         processes.add(p);
-    }
-    
-    public class Requests {
-        Processes p;
-        int recNo;
-        
-        public Requests(String id, int recNo) {
-            for(Processes p : processes) {
-                if(p.id == UUID.fromString(id)) {
-                    this.p = p;
-                    break;
-                }
-            }
-            this.recNo = recNo;
-        }
     }
 }
 

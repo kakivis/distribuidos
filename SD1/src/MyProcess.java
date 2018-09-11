@@ -5,6 +5,7 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import java.util.Scanner;
 import java.util.UUID;
@@ -22,7 +23,7 @@ public class MyProcess {
     public static Process next0 = null;
     public static Process next1 = null;
     ArrayList<Processes> processes = new ArrayList<>();
-    ArrayList<Requests> requests = new ArrayList<>();
+//    ArrayList<Requests> requests = new ArrayList<>();
     ArrayList<String> positive_response_ids = new ArrayList<>();
     ArrayList<String> negative_response_ids = new ArrayList<>();
     
@@ -78,8 +79,15 @@ public class MyProcess {
                     
                     switch (message.charAt(0)) {
                         // Se for um processo se apresentando
+                        /*
+                        As mensagens podem ter as seguintes estruturas:
+                        j id key_mod key_exp
+                        q id
+                        r resource_num id
+                        f resource_num id resp_criptografada
+                        */
                         case 'j':
-                            // Retirando as informações: ip, porta, módulo e expoente
+                            // Retirando as informações: id, modulo e expoente 
                             StringTokenizer st = new StringTokenizer(message);
                             st.nextToken();
                             String pid = st.nextToken().trim();
@@ -98,9 +106,10 @@ public class MyProcess {
                             // Se o processo foi encontrado
                             if(process != null ){  
                                 // Tornando a mensagem mais agradável ao usuário
-                                message = "processo já registrado: ID " + pid;
+                                message = "";
+//                                message = "processo já registrado: ID " + pid;
                             } else if(pid.compareTo(id.toString()) == 0) {
-                                System.out.println("Cheguei nessa porra");
+                                message = "";
                             } else {
                                 addProcess(pid, mod, exp);
                                 // Tornando a mensagem mais agradável ao usuário
@@ -144,6 +153,7 @@ public class MyProcess {
                             pid = st.nextToken().trim();
                             
                             if(pid.compareTo(id.toString()) == 0) {
+                                message = "Requisitando recurso "+recNo;
                                 break;
                             }
                             
@@ -155,6 +165,7 @@ public class MyProcess {
                                 }
                                 
                                 sendMulticastMessage(feedback);
+                                message = "Processo " + pid + " requisitou o recurso " + recNo;
                             } else if(recNo == 1) {
                                 String feedback = "f " + recNo + " " + id + " " + criptography.criptografa("y", criptography.key.getPrivate());
                                 
@@ -163,8 +174,9 @@ public class MyProcess {
                                 }
                                 
                                 sendMulticastMessage(feedback);
+                                message = "Processo " + pid + " requisitou o recurso " + recNo;
                             } else {
-                                message = "Recebido número de pacote inválido";
+                                message = "Recebido número de recurso inválido";
                             }
                             
                             break;
@@ -176,6 +188,7 @@ public class MyProcess {
                             pid = st.nextToken().trim();
                             String resp = st.nextToken().trim();
                             if(pid.compareTo(id.toString()) == 0) {
+                                message = ""; //ignora proprio feedback
                                 break;
                             }
                             message = "Mensagem de feedback não aguardada";
@@ -190,19 +203,20 @@ public class MyProcess {
                                 }
                                 
                                 String respD = criptography.descriptografa(resp, k);
-                                System.out.println(respD);
+//                                System.out.println(respD);
                                 
                                 if(respD.compareTo("y") == 0){
                                     if (negative_response_ids.contains(pid)){
                                         negative_response_ids.remove(pid);
-                                        System.out.println("Removeu da lista de negativos");
+//                                        System.out.println("Removeu da lista de negativos");
                                     }
                                     if (!positive_response_ids.contains(pid)){
                                         positive_response_ids.add(pid);
-                                        System.out.println("Colocou na lista de positivos");
-                                        System.out.println(positive_response_ids.size()+" " + processes.size());
-                                        System.out.println(positive_response_ids.size() + negative_response_ids.size() == processes.size());
+//                                        System.out.println("Colocou na lista de positivos");
+//                                        System.out.println(positive_response_ids.size()+" " + processes.size());
+//                                        System.out.println(positive_response_ids.size() + negative_response_ids.size() == processes.size());
                                     }
+                                    message = "Feedback do processo "+ pid+ " foi positivo";
                                     
                                 } else if (respD.compareTo("n") == 0){
                                     if (positive_response_ids.contains(pid)){
@@ -211,8 +225,9 @@ public class MyProcess {
                                     if (!negative_response_ids.contains(pid)){
                                         negative_response_ids.add(pid);
                                     }
+                                    message = "Feedback do processo "+ pid+ " foi negativo";
                                 }
-                                message = "Mensagem de feedback considerada";
+                                
                             }
                             
                             break;
@@ -221,7 +236,8 @@ public class MyProcess {
                     }
                     
                     // Imprimindo a mensagem ao usuário
-                    System.out.println("log: " + message);
+                    if(message.compareTo("") != 0)
+                        System.out.println("LOG: " + message);
                 } catch (IOException e) {
                     System.out.println(e);
                 }
@@ -283,16 +299,22 @@ public class MyProcess {
                         // Timer varre a lista de interesses e remove qual já está expirado
                         timer.schedule(new TimerTask() {
                             public void run() {
-                                System.out.println("Timer ativou");
-                                for(Processes p : processes) {
+                                System.out.println("Timer ativou: Atualizando lista de processos");
+                                for(Iterator<Processes> iter = processes.iterator(); iter.hasNext();) {
+                                    Processes p = iter.next();
                                     if(!positive_response_ids.contains(p.id.toString()) && !negative_response_ids.contains(p.id.toString())) {
-                                        processes.remove(p);
+                                        iter.remove();
                                     }
                                 }
+//                                System.out.println("saiu do loop");
                             }
                         }, delay);
 
                         sendMulticastMessage(message);
+                        int i;
+                        for(i =0; i < 1000000; i++);
+                        
+                        System.out.println("Esperando todos os feedbacks serem positivos...");
                         
                         while(true){
                             if (positive_response_ids.size() == processes.size()){
@@ -300,14 +322,14 @@ public class MyProcess {
                             }
                             System.out.print("");
                             if(positive_response_ids.size() + negative_response_ids.size() == processes.size() && timer != null) {
-                                System.out.println("Cancelando timer");
+//                                System.out.println("Cancelando timer");
                                 timer.cancel();
                                 timer.purge();
                                 timer = null;
-                                System.out.println("Timer desligado");
+//                                System.out.println("Timer desligado");
                             }
                         }
-                        System.out.println("Saiu do while");
+//                        System.out.println("Saiu do while");
                         positive_response_ids.clear();
                         negative_response_ids.clear();
                         

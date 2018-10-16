@@ -13,15 +13,3 @@
 -Feedback(f) (f resource id response)
 
 ==================================================================================
- 			long millis = System.currentTimeMillis();
-                            int delay = 5*1000;
-
-                            // Cria o timer
-                            Timer timer = new Timer();
-
-                            // Timer varre a lista de interesses e remove qual já está expirado
-                            timer.schedule(new TimerTask() {
-                                public void run() {
-                                    
-                                }
-                            }, delay);
